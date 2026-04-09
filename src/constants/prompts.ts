@@ -115,8 +115,9 @@ You need to organize the searched information according to the following require
 You need to think like a human researcher.
 Generate a list of learnings from the search results.
 Make sure each learning is unique and not similar to each other.
-The learnings should be to the point, as detailed and information dense as possible.
-Make sure to include any entities like people, places, companies, products, things, etc in the learnings, as well as any specific entities, metrics, numbers, and dates when available. The learnings will be used to research the topic further.`;
+The learnings should be as detailed and information dense as possible — preserve specific facts, figures, quotes, methodology details, and nuanced context rather than compressing them into vague summaries.
+Only include code snippets, commands, or configuration examples if they are directly essential to understanding the research goal — omit incidental or tangential code.
+Make sure to include any entities like people, places, companies, products, things, etc in the learnings, as well as any specific entities, metrics, numbers, and dates when available. The learnings will be used to write a comprehensive research report.`;
 
 export const citationRulesPrompt = `Citation Rules:
 
@@ -142,8 +143,9 @@ The following context from the SERP search:
 You need to think like a human researcher.
 Generate a list of learnings from the contexts.
 Make sure each learning is unique and not similar to each other.
-The learnings should be to the point, as detailed and information dense as possible.
-Make sure to include any entities like people, places, companies, products, things, etc in the learnings, as well as any specific entities, metrics, numbers, and dates when available. The learnings will be used to research the topic further.`;
+The learnings should be as detailed and information dense as possible — preserve specific facts, figures, quotes, methodology details, and nuanced context rather than compressing them into vague summaries. Do not discard supporting details that give findings their meaning.
+Only include code snippets, commands, or configuration examples if they are directly essential to understanding the research goal — omit incidental or tangential code.
+Make sure to include any entities like people, places, companies, products, things, etc in the learnings, as well as any specific entities, metrics, numbers, and dates when available. The learnings will be used to write a comprehensive research report.`;
 
 export const searchKnowledgeResultPrompt = `Given the following contents from a local knowledge base search for the query:
 <QUERY>
@@ -163,8 +165,9 @@ The following contexts from the SERP search:
 You need to think like a human researcher.
 Generate a list of learnings from the contents.
 Make sure each learning is unique and not similar to each other.
-The learnings should be to the point, as detailed and information dense as possible.
-Make sure to include any entities like people, places, companies, products, things, etc in the learnings, as well as any specific entities, metrics, numbers, and dates when available. The learnings will be used to research the topic further.`;
+The learnings should be as detailed and information dense as possible — preserve specific facts, figures, quotes, methodology details, and nuanced context rather than compressing them into vague summaries. Do not discard supporting details that give findings their meaning.
+Only include code snippets, commands, or configuration examples if they are directly essential to understanding the research goal — omit incidental or tangential code.
+Make sure to include any entities like people, places, companies, products, things, etc in the learnings, as well as any specific entities, metrics, numbers, and dates when available. The learnings will be used to write a comprehensive research report.`;
 
 export const reviewPrompt = `This is the report plan after user confirmation:
 <PLAN>
@@ -229,7 +232,12 @@ Please write according to the user's writing requirements, if any:
 </REQUIREMENT>
 
 Write a final report based on the report plan using the learnings from research.
-Make it as detailed as possible, aim for 5 pages or more, the more the better, include ALL the learnings from research.
+- **Include ALL learnings** — do not skip, compress, or discard any finding regardless of apparent overlap.
+- **Each section must contain multiple substantial paragraphs** of analytical prose. Do not substitute bullet lists for paragraph-level explanation.
+- **Expand every learning into full context** — explain implications, provide supporting detail, and connect findings to the broader topic. Raw facts alone are not enough.
+- **Minimum 6000 words.** Depth and thoroughness are required. A longer, more complete report is always preferred. Do not truncate or summarize sections — write every section to full length.
+- **Back every claim** with specific data, numbers, dates, and named entities drawn from the learnings.
+- **Include code snippets** only when the report requires runnable examples, step-by-step implementation guidance, or specific commands the reader must execute — do not add code for conceptual, analytical, or general technical topics.
 **Respond only the final report content, and no additional text before or after.**`;
 
 export const rewritingPrompt = `You are tasked with re-writing the following text to markdown. Ensure you do not change the meaning or story behind the text. 

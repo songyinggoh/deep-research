@@ -1,5 +1,5 @@
 "use client";
-import { useLayoutEffect } from "react";
+import { useEffect } from "react";
 import { I18nextProvider } from "react-i18next";
 import { useSettingStore } from "@/store/setting";
 import i18n, { detectLanguage } from "@/utils/i18n";
@@ -7,7 +7,7 @@ import i18n, { detectLanguage } from "@/utils/i18n";
 function I18Provider({ children }: { children: React.ReactNode }) {
   const { language } = useSettingStore();
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     const settingStore = useSettingStore.getState();
     if (settingStore.language === "") {
       const browserLang = detectLanguage();

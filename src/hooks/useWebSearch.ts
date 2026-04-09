@@ -136,10 +136,11 @@ function useWebSearch() {
         break;
       case "searxng":
         const { searxngApiProxy, searxngScope } = useSettingStore.getState();
-        if (mode === "local") {
+        if (mode === "local" && searxngApiProxy) {
           options.baseURL = searxngApiProxy;
         } else {
           options.baseURL = location.origin + "/api/search/searxng";
+          options.apiKey = generateSignature(accessPassword, Date.now());
         }
         options.scope = searxngScope;
         break;

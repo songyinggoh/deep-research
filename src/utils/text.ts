@@ -1,4 +1,4 @@
-const MAX_TEXT_CHUNK_LENGTH = 2000; // 你可以根据需要调整这个值
+const MAX_TEXT_CHUNK_LENGTH = 2000; // You can adjust this value as needed
 
 export function splitText(
   text: string = "",
@@ -10,7 +10,7 @@ export function splitText(
 
   for (const paragraph of paragraphs) {
     if (currentChunk.length + paragraph.length + 1 <= maxLength) {
-      // +1 是为了加上换行符
+      // +1 accounts for the newline character
       currentChunk += (currentChunk.length > 0 ? "\n" : "") + paragraph;
     } else {
       if (currentChunk.length > 0) {
@@ -29,6 +29,15 @@ export function splitText(
 
 export function removeJsonMarkdown(text: string) {
   text = text.trim();
+  // Extract JSON from within a code block even if prose precedes it,
+  // but only when the text actually starts with a fence to avoid false matches
+  // on inline code or other backtick usage inside normal prose.
+  if (text.startsWith("```")) {
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+    if (codeBlockMatch) {
+      return codeBlockMatch[1].trim();
+    }
+  }
   if (text.startsWith("```json")) {
     text = text.slice(7);
   } else if (text.startsWith("json")) {

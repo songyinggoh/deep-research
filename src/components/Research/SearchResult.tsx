@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import {
   LoaderCircle,
+  Square,
   CircleCheck,
   TextSearch,
   Download,
@@ -45,6 +46,7 @@ import useAccurateTimer from "@/hooks/useAccurateTimer";
 import useDeepResearch from "@/hooks/useDeepResearch";
 import useKnowledge from "@/hooks/useKnowledge";
 import useSubmitShortcut from "@/hooks/useSubmitShortcut";
+import { useApiKeyGuard } from "@/hooks/useApiKeyGuard";
 import { useTaskStore } from "@/store/task";
 import { useKnowledgeStore } from "@/store/knowledge";
 import { downloadFile } from "@/utils/file";
@@ -95,7 +97,8 @@ function TaskState({ state }: { state: SearchTask["state"] }) {
 function SearchResult() {
   const { t } = useTranslation();
   const taskStore = useTaskStore();
-  const { status, runSearchTask, reviewSearchResult } = useDeepResearch();
+  const { status, halt, runSearchTask, reviewSearchResult } = useDeepResearch();
+  const checkApiKey = useApiKeyGuard();
   const { generateId } = useKnowledge();
   const {
     formattedTime,
@@ -192,6 +195,7 @@ function SearchResult() {
   }
 
   async function handleSubmit(values: z.infer<typeof formSchema>) {
+    if (!checkApiKey()) return;
     const { setSuggestion } = useTaskStore.getState();
     try {
       accurateTimerStart();
@@ -619,24 +623,37 @@ function SearchResult() {
                   </FormItem>
                 )}
               />
-              <Button
-                className="w-full mt-4"
-                type="submit"
-                variant="default"
-                disabled={isThinking}
-              >
-                {isThinking ? (
-                  <>
-                    <LoaderCircle className="animate-spin" />
-                    <span>{status}</span>
-                    <small className="font-mono">{formattedTime}</small>
-                  </>
-                ) : taskFinished ? (
-                  t("research.common.indepthResearch")
-                ) : (
-                  t("research.common.continueResearch")
+              <div className="flex gap-2 mt-4">
+                <Button
+                  className="flex-1"
+                  type="submit"
+                  variant="default"
+                  disabled={isThinking}
+                >
+                  {isThinking ? (
+                    <>
+                      <LoaderCircle className="animate-spin" />
+                      <span>{status}</span>
+                      <small className="font-mono">{formattedTime}</small>
+                    </>
+                  ) : taskFinished ? (
+                    t("research.common.indepthResearch")
+                  ) : (
+                    t("research.common.continueResearch")
+                  )}
+                </Button>
+                {isThinking && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    title={t("research.common.stop")}
+                    onClick={halt}
+                  >
+                    <Square className="fill-current" />
+                  </Button>
                 )}
-              </Button>
+              </div>
             </form>
           </Form>
         </div>

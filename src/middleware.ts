@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import { NextRequest } from "next/server";
 import { getCustomModelList, multiApiKeyPolling } from "@/utils/model";
 import { verifySignature } from "@/utils/signature";
-import { generateAuthToken } from "@/utils/vertexAuth";
+import { generateAuthToken } from "@/utils/vertex-auth";
 
-const NODE_ENV = process.env.NODE_ENV;
 const accessPassword = process.env.ACCESS_PASSWORD || "";
 // AI provider API key
 const GOOGLE_GENERATIVE_AI_API_KEY =
@@ -50,8 +49,6 @@ const ERRORS = {
 };
 
 export async function middleware(request: NextRequest) {
-  if (NODE_ENV === "production") console.debug(request);
-
   const disabledAIProviders =
     DISABLED_AI_PROVIDER.length > 0 ? DISABLED_AI_PROVIDER.split(",") : [];
   const disabledSearchProviders =

@@ -5,7 +5,7 @@ import { useTranslation } from "react-i18next";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { LoaderCircle } from "lucide-react";
+import { LoaderCircle, Square } from "lucide-react";
 import { Button } from "@/components/Internal/Button";
 import {
   Form,
@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import useDeepResearch from "@/hooks/useDeepResearch";
 import useAccurateTimer from "@/hooks/useAccurateTimer";
 import useSubmitShortcut from "@/hooks/useSubmitShortcut";
+import { useApiKeyGuard } from "@/hooks/useApiKeyGuard";
 import { useTaskStore } from "@/store/task";
 
 const MagicDown = dynamic(() => import("@/components/MagicDown"));
@@ -29,7 +30,8 @@ const formSchema = z.object({
 function Feedback() {
   const { t } = useTranslation();
   const taskStore = useTaskStore();
-  const { status, deepResearch, writeReportPlan } = useDeepResearch();
+  const { status, halt, deepResearch, writeReportPlan } = useDeepResearch();
+  const checkApiKey = useApiKeyGuard();
   const {
     formattedTime,
     start: accurateTimerStart,
@@ -49,6 +51,7 @@ function Feedback() {
   });
 
   async function startDeepResearch() {
+    if (!checkApiKey()) return;
     try {
       accurateTimerStart();
       setIsResaerch(true);
@@ -60,6 +63,7 @@ function Feedback() {
   }
 
   async function handleSubmit(values: z.infer<typeof formSchema>) {
+    if (!checkApiKey()) return;
     const { question, questions, setFeedback } = useTaskStore.getState();
     setFeedback(values.feedback);
     const prompt = [
@@ -124,23 +128,32 @@ function Feedback() {
                   </FormItem>
                 )}
               />
-              <Button
-                className="mt-4 w-full"
-                type="submit"
-                disabled={isThinking}
-              >
-                {isThinking ? (
-                  <>
-                    <LoaderCircle className="animate-spin" />
-                    <span>{status}</span>
-                    <small className="font-mono">{formattedTime}</small>
-                  </>
-                ) : taskStore.reportPlan === "" ? (
-                  t("research.common.writeReportPlan")
-                ) : (
-                  t("research.common.rewriteReportPlan")
+              <div className="flex gap-2 mt-4">
+                <Button className="flex-1" type="submit" disabled={isThinking}>
+                  {isThinking ? (
+                    <>
+                      <LoaderCircle className="animate-spin" />
+                      <span>{status}</span>
+                      <small className="font-mono">{formattedTime}</small>
+                    </>
+                  ) : taskStore.reportPlan === "" ? (
+                    t("research.common.writeReportPlan")
+                  ) : (
+                    t("research.common.rewriteReportPlan")
+                  )}
+                </Button>
+                {isThinking && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="icon"
+                    title={t("research.common.stop")}
+                    onClick={halt}
+                  >
+                    <Square className="fill-current" />
+                  </Button>
                 )}
-              </Button>
+              </div>
             </form>
           </Form>
         </div>
@@ -155,24 +168,37 @@ function Feedback() {
             value={taskStore.reportPlan}
             onChange={(value) => taskStore.updateReportPlan(value)}
           ></MagicDown>
-          <Button
-            className="w-full mt-4"
-            variant="default"
-            onClick={() => startDeepResearch()}
-            disabled={isResearch}
-          >
-            {isResearch ? (
-              <>
-                <LoaderCircle className="animate-spin" />
-                <span>{status}</span>
-                <small className="font-mono">{formattedTime}</small>
-              </>
-            ) : taskStore.tasks.length === 0 ? (
-              t("research.common.startResearch")
-            ) : (
-              t("research.common.restartResearch")
+          <div className="flex gap-2 mt-4">
+            <Button
+              className="flex-1"
+              variant="default"
+              onClick={() => startDeepResearch()}
+              disabled={isResearch}
+            >
+              {isResearch ? (
+                <>
+                  <LoaderCircle className="animate-spin" />
+                  <span>{status}</span>
+                  <small className="font-mono">{formattedTime}</small>
+                </>
+              ) : taskStore.tasks.length === 0 ? (
+                t("research.common.startResearch")
+              ) : (
+                t("research.common.restartResearch")
+              )}
+            </Button>
+            {isResearch && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                title="Stop"
+                onClick={halt}
+              >
+                <Square className="fill-current" />
+              </Button>
             )}
-          </Button>
+          </div>
         </div>
       ) : null}
     </section>

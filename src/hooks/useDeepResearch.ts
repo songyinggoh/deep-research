@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   streamText,
   smoothStream,
@@ -55,6 +55,7 @@ function smoothTextStream(type: "character" | "word" | "line") {
 }
 
 function handleError(error: unknown) {
+  if (error instanceof Error && error.name === "AbortError") return;
   console.log(error);
   const errorMessage = parseError(error);
   toast.error(errorMessage);
@@ -67,6 +68,16 @@ function useDeepResearch() {
   const { createModelProvider, getModel } = useModelProvider();
   const { search } = useWebSearch();
   const [status, setStatus] = useState<string>("");
+  const abortControllerRef = useRef<AbortController>(new AbortController());
+
+  function halt() {
+    abortControllerRef.current.abort();
+    abortControllerRef.current = new AbortController();
+  }
+
+  function getSignal() {
+    return abortControllerRef.current.signal;
+  }
 
   function getPromptOverrides() {
     const { deepResearchPromptOverrides } = useSettingStore.getState();
@@ -218,6 +229,7 @@ function useDeepResearch() {
         getResponseLanguagePrompt(),
       ].join("\n\n"),
       experimental_transform: smoothTextStream(smoothTextStreamType),
+      abortSignal: getSignal(),
       onError: handleError,
     });
     let content = "";
@@ -257,6 +269,7 @@ function useDeepResearch() {
         getResponseLanguagePrompt(),
       ].join("\n\n"),
       experimental_transform: smoothTextStream(smoothTextStreamType),
+      abortSignal: getSignal(),
       onError: handleError,
     });
     let content = "";
@@ -314,6 +327,7 @@ function useDeepResearch() {
         getResponseLanguagePrompt(),
       ].join("\n\n"),
       experimental_transform: smoothTextStream(smoothTextStreamType),
+      abortSignal: getSignal(),
       onError: handleError,
     });
     let content = "";
@@ -351,10 +365,13 @@ function useDeepResearch() {
     const promptOverrides = getPromptOverrides();
     setStatus(t("research.common.research"));
     const plimit = Plimit(parallelSearch);
-    const thinkTagStreamProcessor = new ThinkTagStreamProcessor();
+    getSignal().addEventListener("abort", () => plimit.clearQueue(), {
+      once: true,
+    });
     await Promise.all(
       queries.map((item) => {
-        plimit(async () => {
+        return plimit(async () => {
+          const thinkTagStreamProcessor = new ThinkTagStreamProcessor();
           let content = "";
           let reasoning = "";
           let searchResult;
@@ -422,6 +439,7 @@ function useDeepResearch() {
                   getResponseLanguagePrompt(),
                 ].join("\n\n"),
                 experimental_transform: smoothTextStream(smoothTextStreamType),
+                abortSignal: getSignal(),
                 onError: handleError,
               });
             } else {
@@ -440,6 +458,7 @@ function useDeepResearch() {
                   getResponseLanguagePrompt(),
                 ].join("\n\n"),
                 experimental_transform: smoothTextStream(smoothTextStreamType),
+                abortSignal: getSignal(),
                 onError: handleError,
               });
             }
@@ -456,7 +475,9 @@ function useDeepResearch() {
                 getResponseLanguagePrompt(),
               ].join("\n\n"),
               experimental_transform: smoothTextStream(smoothTextStreamType),
+              abortSignal: getSignal(),
               onError: (err) => {
+                if (err instanceof Error && err.name === "AbortError") return;
                 taskStore.updateTask(item.query, { state: "failed" });
                 handleError(err);
               },
@@ -561,6 +582,7 @@ function useDeepResearch() {
         getResponseLanguagePrompt(),
       ].join("\n\n"),
       experimental_transform: smoothTextStream(smoothTextStreamType),
+      abortSignal: getSignal(),
       onError: handleError,
     });
 
@@ -577,14 +599,16 @@ function useDeepResearch() {
             removeJsonMarkdown(content)
           );
           if (
-            querySchema.safeParse(data.value) &&
+            querySchema.safeParse(data.value).success &&
             data.state === "successful-parse"
           ) {
-            if (data.value) {
+            if (Array.isArray(data.value)) {
               queries = data.value.map(
                 (item: { query: string; researchGoal: string }) => ({
                   state: "unprocessed",
                   learning: "",
+                  sources: [],
+                  images: [],
                   ...pick(item, ["query", "researchGoal"]),
                 })
               );
@@ -722,6 +746,7 @@ function useDeepResearch() {
       ],
       temperature: 0.5,
       experimental_transform: smoothTextStream(smoothTextStreamType),
+      abortSignal: getSignal(),
       onError: handleError,
     });
     let content = "";
@@ -787,6 +812,7 @@ function useDeepResearch() {
           getResponseLanguagePrompt(),
         ].join("\n\n"),
         experimental_transform: smoothTextStream(smoothTextStreamType),
+        abortSignal: getSignal(),
         onError: handleError,
       });
 
@@ -802,16 +828,18 @@ function useDeepResearch() {
             const data: PartialJson = parsePartialJson(
               removeJsonMarkdown(content)
             );
-            if (querySchema.safeParse(data.value)) {
+            if (querySchema.safeParse(data.value).success) {
               if (
                 data.state === "repaired-parse" ||
                 data.state === "successful-parse"
               ) {
-                if (data.value) {
+                if (Array.isArray(data.value)) {
                   queries = data.value.map(
                     (item: { query: string; researchGoal: string }) => ({
                       state: "unprocessed",
                       learning: "",
+                      sources: [],
+                      images: [],
                       ...pick(item, ["query", "researchGoal"]),
                     })
                   );
@@ -839,12 +867,15 @@ function useDeepResearch() {
         }
       }
     } catch (err) {
-      console.error(err);
+      if (!(err instanceof Error && err.name === "AbortError")) {
+        handleError(err);
+      }
     }
   }
 
   return {
     status,
+    halt,
     deepResearch,
     askQuestions,
     writeReportPlan,

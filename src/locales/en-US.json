@@ -5,6 +5,8 @@
   "copyright": "Created with ❤️ by {{name}} team",
   "searchPlaceholder": "Please enter keywords",
   "header": {
+    "openSidebar": "Open sidebar",
+    "closeSidebar": "Close sidebar",
     "session": {
       "export": "Export Session",
       "import": "Import Session",
@@ -48,7 +50,8 @@
       "copy": "Copy",
       "export": "Export",
       "delete": "Delete",
-      "submitShortcut": "Shortcut: Ctrl/Cmd + Enter"
+      "submitShortcut": "Shortcut: Ctrl/Cmd + Enter",
+      "stop": "Stop"
     },
     "topic": {
       "title": "1. Research Topics",
@@ -122,6 +125,14 @@
       "pending": "Pending"
     }
   },
+  "sidebar": {
+    "newResearch": "New Research",
+    "search": "Search...",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "previous7days": "Previous 7 days",
+    "older": "Older"
+  },
   "history": {
     "title": "History",
     "description": "Research history is stored locally in the browser, and only save completed research.",
@@ -136,6 +147,8 @@
     "load": "Load",
     "export": "Export",
     "delete": "Delete",
+    "clearAll": "Clear All",
+    "clearAllConfirm": "Are you sure you want to delete all history? This action cannot be undone.",
     "loadMore": "Load More History",
     "close": "Close",
     "noHistory": "No history records"

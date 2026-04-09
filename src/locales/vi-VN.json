@@ -5,6 +5,8 @@
   "copyright": "Tạo với ❤️ bởi nhóm {{name}}",
   "searchPlaceholder": "Vui lòng nhập từ khóa",
   "header": {
+    "openSidebar": "Mở thanh bên",
+    "closeSidebar": "Đóng thanh bên",
     "session": {
       "export": "Xuất phiên",
       "import": "Nhập phiên",
@@ -48,7 +50,8 @@
       "copy": "Sao chép",
       "export": "Xuất",
       "delete": "Xóa",
-      "submitShortcut": "Phím tắt: Ctrl/Cmd + Enter"
+      "submitShortcut": "Phím tắt: Ctrl/Cmd + Enter",
+      "stop": "Dừng"
     },
     "topic": {
       "title": "1. Chủ Đề Nghiên Cứu",
@@ -122,6 +125,14 @@
       "pending": "Chưa bắt đầu"
     }
   },
+  "sidebar": {
+    "newResearch": "Nghiên cứu mới",
+    "search": "Tìm kiếm...",
+    "today": "Hôm nay",
+    "yesterday": "Hôm qua",
+    "previous7days": "7 ngày qua",
+    "older": "Cũ hơn"
+  },
   "history": {
     "title": "Lịch Sử",
     "description": "Lịch sử nghiên cứu được lưu trữ cục bộ trong trình duyệt và chỉ lưu các nghiên cứu đã hoàn thành.",
@@ -136,6 +147,8 @@
     "load": "Tải",
     "export": "Xuất",
     "delete": "Xóa",
+    "clearAll": "Xóa Tất Cả",
+    "clearAllConfirm": "Bạn có chắc muốn xóa toàn bộ lịch sử? Hành động này không thể hoàn tác.",
     "loadMore": "Tải thêm lịch sử",
     "close": "Đóng",
     "noHistory": "Không có bản ghi lịch sử"

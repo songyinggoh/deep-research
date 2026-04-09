@@ -16,6 +16,18 @@ import "./style.css";
 const Code = dynamic(() => import("./Code"));
 const Mermaid = dynamic(() => import("./Mermaid"));
 
+// Strip XML-like tags that LLMs sometimes echo back from prompt templates.
+// These are not valid HTML elements and cause React DOM warnings when passed
+// through rehype-raw.
+// Tag names are sourced from src/constants/prompts.ts and
+// src/utils/deep-research/prompts.ts — update both when adding new tags.
+const PROMPT_XML_TAG_RE =
+  /<\/?(query|plan|context|research_goal|learnings|learning|sources|images|requirement|suggestion|outputguidelines|guidelines)(\s[^>]*)?\s*>/gi;
+
+function stripPromptXmlTags(content: string): string {
+  return content.replace(PROMPT_XML_TAG_RE, "");
+}
+
 export type MarkdownProps = {
   id?: string;
   className?: string;
@@ -33,6 +45,10 @@ function MarkdownBlock({ children: content, ...rest }: Options) {
     [rest.rehypePlugins]
   );
   const components = useMemo(() => rest.components ?? {}, [rest.components]);
+  const sanitizedContent = useMemo(
+    () => (typeof content === "string" ? stripPromptXmlTags(content) : content),
+    [content]
+  );
 
   return (
     <ReactMarkdown
@@ -150,7 +166,6 @@ function MarkdownBlock({ children: content, ...rest }: Options) {
                 alt={alt}
                 title={alt}
                 referrerPolicy="no-referrer"
-                rel="noopener noreferrer"
               />
             </picture>
           );
@@ -158,7 +173,7 @@ function MarkdownBlock({ children: content, ...rest }: Options) {
         ...components,
       }}
     >
-      {content}
+      {sanitizedContent}
     </ReactMarkdown>
   );
 }

@@ -5,6 +5,8 @@
   "copyright": "Creado con ❤️ por el equipo de {{name}}",
   "searchPlaceholder": "Por favor, introduce palabras clave",
   "header": {
+    "openSidebar": "Abrir barra lateral",
+    "closeSidebar": "Cerrar barra lateral",
     "session": {
       "export": "Exportar sesión",
       "import": "Importar sesión",
@@ -48,7 +50,8 @@
       "copy": "Copiar",
       "export": "Exportar",
       "delete": "Eliminar",
-      "submitShortcut": "Atajo: Ctrl/Cmd + Enter"
+      "submitShortcut": "Atajo: Ctrl/Cmd + Enter",
+      "stop": "Detener"
     },
     "topic": {
       "title": "1. Definición de la investigación",
@@ -122,6 +125,14 @@
       "pending": "Pendiente"
     }
   },
+  "sidebar": {
+    "newResearch": "Nueva Investigación",
+    "search": "Buscar...",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "previous7days": "Últimos 7 días",
+    "older": "Más antiguo"
+  },
   "history": {
     "title": "Historial",
     "description": "El historial de investigación se almacena localmente en el navegador y solo guarda las investigaciones completadas.",
@@ -136,6 +147,8 @@
     "load": "Cargar",
     "export": "Exportar",
     "delete": "Eliminar",
+    "clearAll": "Borrar Todo",
+    "clearAllConfirm": "¿Estás seguro de que deseas eliminar todo el historial? Esta acción no se puede deshacer.",
     "loadMore": "Cargar Más Historial",
     "close": "Cerrar",
     "noHistory": "No hay registros en el historial"

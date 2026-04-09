@@ -73,8 +73,11 @@ export default function RootLayout({
   return (
     <html lang="en" dir="auto" suppressHydrationWarning>
       <head>
-        {HEAD_SCRIPTS ? <Script id="headscript">{HEAD_SCRIPTS}</Script> : null}
-        <Debugger />
+        {HEAD_SCRIPTS ? (
+          <Script id="headscript" strategy="afterInteractive">
+            {HEAD_SCRIPTS}
+          </Script>
+        ) : null}
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <ThemeProvider
@@ -86,6 +89,7 @@ export default function RootLayout({
           <I18Provider>{children}</I18Provider>
         </ThemeProvider>
         <Toaster richColors toastOptions={{ duration: 3000 }} />
+        <Debugger />
       </body>
     </html>
   );

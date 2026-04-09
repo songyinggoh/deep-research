@@ -19,6 +19,7 @@ interface HistoryActions {
   load: (id: string) => TaskStore | void;
   update: (id: string, taskStore: TaskStore) => boolean;
   remove: (id: string) => boolean;
+  clearAll: () => void;
 }
 
 const nanoid = customAlphabet("1234567890abcdefghijklmnopqrstuvwxyz", 12);
@@ -50,6 +51,8 @@ export const useHistoryStore = create(
           if (item.id === id) {
             return {
               ...clone(taskStore),
+              id: item.id,
+              createdAt: item.createdAt,
               updatedAt: Date.now(),
             } as ResearchHistory;
           } else {
@@ -64,6 +67,9 @@ export const useHistoryStore = create(
           history: state.history.filter((item) => item.id !== id),
         }));
         return true;
+      },
+      clearAll: () => {
+        set(() => ({ history: [] }));
       },
     }),
     {

@@ -1,7 +1,7 @@
 "use client";
 import { useState, useMemo, useLayoutEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
-import { TrashIcon, FileOutput, Download } from "lucide-react";
+import { FileOutput, Download, Trash2 } from "lucide-react";
 import { z } from "zod";
 import { toast } from "sonner";
 import Fuse from "fuse.js";
@@ -13,6 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,9 +84,10 @@ function History({ open, onClose }: HistoryProps) {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { backup, restore, reset } = useTaskStore();
-  const { history, save, load, update, remove } = useHistoryStore();
+  const { history, save, load, update, remove, clearAll } = useHistoryStore();
   const [historyList, setHistoryList] = useState<ResearchHistory[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+  const [confirmClearOpen, setConfirmClearOpen] = useState(false);
   const showLoadMore = useMemo(() => {
     return history.length > currentPage * PAGE_SIZE;
   }, [history, currentPage]);
@@ -129,6 +131,15 @@ function History({ open, onClose }: HistoryProps) {
     remove(id);
   }
 
+  function handleClearAll() {
+    setConfirmClearOpen(true);
+  }
+
+  function confirmClearAll() {
+    clearAll();
+    setConfirmClearOpen(false);
+  }
+
   function handleSearch(value: string) {
     const options = { keys: ["question", "finalReport"] };
     const knowledgeIndex = Fuse.createIndex(options.keys, history);
@@ -165,6 +176,7 @@ function History({ open, onClose }: HistoryProps) {
   }, [history]);
 
   return (
+    <>
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-lg:max-w-screen-sm max-w-screen-md gap-2">
         <DialogHeader>
@@ -172,13 +184,26 @@ function History({ open, onClose }: HistoryProps) {
           <DialogDescription>{t("history.description")}</DialogDescription>
         </DialogHeader>
         <div className="flex justify-between mt-2">
-          <Button
-            variant="secondary"
-            title={t("history.importTip")}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            {t("history.import")}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="secondary"
+              title={t("history.importTip")}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {t("history.import")}
+            </Button>
+            {history.length > 0 && (
+              <Button
+                variant="secondary"
+                className="text-red-500 hover:text-red-600"
+                title={t("history.clearAll")}
+                onClick={handleClearAll}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                {t("history.clearAll")}
+              </Button>
+            )}
+          </div>
           <SearchArea
             onChange={handleSearch}
             onClear={() => setHistoryList(history.slice(0, PAGE_SIZE))}
@@ -243,7 +268,7 @@ function History({ open, onClose }: HistoryProps) {
                             title={t("history.delete")}
                             onClick={() => removeHistory(item.id)}
                           >
-                            <TrashIcon className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </TableCell>
@@ -274,6 +299,23 @@ function History({ open, onClose }: HistoryProps) {
         />
       </DialogContent>
     </Dialog>
+    <Dialog open={confirmClearOpen} onOpenChange={setConfirmClearOpen}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>{t("history.clearAll")}</DialogTitle>
+          <DialogDescription>{t("history.clearAllConfirm")}</DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex gap-2 justify-end">
+          <Button variant="outline" onClick={() => setConfirmClearOpen(false)}>
+            {t("setting.cancel")}
+          </Button>
+          <Button variant="destructive" onClick={confirmClearAll}>
+            {t("history.clearAll")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 

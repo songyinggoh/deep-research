@@ -90,7 +90,7 @@ export async function POST(req: NextRequest) {
           }
           controller.enqueue(
             encoder.encode(
-              `event: ${event}\ndata: ${JSON.stringify(data)})}\n\n`
+              `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
             )
           );
         },

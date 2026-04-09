@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import {
   LoaderCircle,
+  Square,
   SquarePlus,
   FilePlus,
   BookText,
@@ -44,7 +45,7 @@ function Topic() {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const taskStore = useTaskStore();
-  const { askQuestions } = useDeepResearch();
+  const { askQuestions, halt } = useDeepResearch();
   const { hasApiKey } = useAiProvider();
   const { getKnowledgeFromFile } = useKnowledge();
   const {
@@ -258,19 +259,32 @@ function Topic() {
               </DropdownMenu>
             </div>
           </div>
-          <Button className="w-full mt-4" disabled={isThinking} type="submit">
-            {isThinking ? (
-              <>
-                <LoaderCircle className="animate-spin" />
-                <span>{t("research.common.thinkingQuestion")}</span>
-                <small className="font-mono">{formattedTime}</small>
-              </>
-            ) : taskStore.questions === "" ? (
-              t("research.common.startThinking")
-            ) : (
-              t("research.common.rethinking")
+          <div className="flex gap-2 mt-4">
+            <Button className="flex-1" disabled={isThinking} type="submit">
+              {isThinking ? (
+                <>
+                  <LoaderCircle className="animate-spin" />
+                  <span>{t("research.common.thinkingQuestion")}</span>
+                  <small className="font-mono">{formattedTime}</small>
+                </>
+              ) : taskStore.questions === "" ? (
+                t("research.common.startThinking")
+              ) : (
+                t("research.common.rethinking")
+              )}
+            </Button>
+            {isThinking && (
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                title={t("research.common.stop")}
+                onClick={halt}
+              >
+                <Square className="fill-current" />
+              </Button>
             )}
-          </Button>
+          </div>
         </form>
       </Form>
       <input

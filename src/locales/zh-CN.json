@@ -5,6 +5,8 @@
   "copyright": "{{name}} 团队用 ❤️ 构建",
   "searchPlaceholder": "请输入关键词",
   "header": {
+    "openSidebar": "展开侧边栏",
+    "closeSidebar": "收起侧边栏",
     "session": {
       "export": "导出会话",
       "import": "导入会话",
@@ -48,7 +50,8 @@
       "copy": "复制",
       "export": "导出",
       "delete": "删除",
-      "submitShortcut": "快捷键：Ctrl/Cmd + Enter"
+      "submitShortcut": "快捷键：Ctrl/Cmd + Enter",
+      "stop": "停止"
     },
     "topic": {
       "title": "1. 研究方向",
@@ -122,6 +125,14 @@
       "pending": "待开始"
     }
   },
+  "sidebar": {
+    "newResearch": "开始新研究",
+    "search": "搜索...",
+    "today": "今天",
+    "yesterday": "昨天",
+    "previous7days": "过去7天",
+    "older": "更早"
+  },
   "history": {
     "title": "历史记录",
     "description": "研究历史保存在浏览器本地，仅保存已完成的研究。",
@@ -136,6 +147,8 @@
     "load": "加载",
     "export": "导出",
     "delete": "删除",
+    "clearAll": "清除全部",
+    "clearAllConfirm": "确定要删除所有历史记录吗？此操作无法撤销。",
     "loadMore": "加载更多历史",
     "close": "关闭",
     "noHistory": "没有历史记录"

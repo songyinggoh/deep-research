@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import { toast } from "sonner";
-import { Settings, Github, History, BookText, Keyboard } from "lucide-react";
+import { Settings, Github, History, BookText, Keyboard, PanelLeft } from "lucide-react";
 import { Button } from "@/components/Internal/Button";
 import {
   Dialog,
@@ -116,7 +116,7 @@ function Header() {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [openShortcuts, setOpenShortcuts] = useState<boolean>(false);
-  const { setOpenSetting, setOpenHistory, setOpenKnowledge } = useGlobalStore();
+  const { setOpenSetting, setOpenHistory, setOpenKnowledge, sidebarOpen, setSidebarOpen } = useGlobalStore();
 
   const exportSnapshot = useCallback(() => {
     const { backup, title, question } = useTaskStore.getState();
@@ -250,14 +250,25 @@ function Header() {
   return (
     <>
       <header className="flex justify-between items-center my-6 max-sm:my-4 print:hidden">
-        <a href="https://github.com/u14app/deep-research" target="_blank">
-          <h1 className="text-left text-xl font-semibold">
-            {t("title")}
-            <small className="ml-2 font-normal text-base">v{VERSION}</small>
-          </h1>
-        </a>
+        <div className="flex items-center gap-1">
+          <Button
+            className="h-8 w-8"
+            variant="ghost"
+            size="icon"
+            title={sidebarOpen ? t("header.closeSidebar") : t("header.openSidebar")}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+          >
+            <PanelLeft className="h-5 w-5" />
+          </Button>
+          <a href="https://github.com/u14app/deep-research" target="_blank" rel="noopener noreferrer">
+            <h1 className="text-left text-xl font-semibold">
+              {t("title")}
+              <small className="ml-2 font-normal text-base">v{VERSION}</small>
+            </h1>
+          </a>
+        </div>
         <div className="flex">
-          <a href="https://github.com/u14app/deep-research" target="_blank">
+          <a href="https://github.com/u14app/deep-research" target="_blank" rel="noopener noreferrer">
             <Button
               className="h-8 w-8"
               title={t("openSource")}

@@ -48,6 +48,9 @@ export default async function Config(phase: string) {
     experimental: {
       reactCompiler: true,
     },
+    turbopack: {
+      root: __dirname,
+    },
     env: {
       NEXT_PUBLIC_VERSION: pkg.version,
     },
