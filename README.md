@@ -74,6 +74,34 @@ Deep Research uses a variety of powerful AI models to generate in-depth research
 3. Set the LLM API base URL (optional)
 4. Start using
 
+## 🖥️ Hardware Requirements (Local LLM)
+
+Deep Research runs great against cloud APIs, but the project is designed first for users who run their own LLM locally (Ollama, LM Studio, Jan, llamafile) alongside a self-hosted search backend like SearXNG. These specs are for that use case. If you're using a cloud API, any machine that can run a browser is enough.
+
+A deep research run makes 5–15 iterative LLM calls. Below ~5 tokens/sec, sessions become painful — that's the practical floor.
+
+### Recommended tiers
+
+| Tier | Hardware | Model you can comfortably run | Notes |
+| --- | --- | --- | --- |
+| **Minimum** | RTX 3060 12GB **or** Mac Mini M4 16GB | 7B–8B at Q4 (Qwen3 8B, Llama 3.1 8B) | 28–45 t/s; this is the default target |
+| **Recommended** | RTX 3090 24GB **or** Mac Mini M4 Pro 48GB | 32B at Q4, or 70B partial offload | Comfortable for multi-step research, smarter synthesis |
+| **Enthusiast** | Dual RTX 3090 NVLink (48GB) **or** Mac Studio M3/M4 Ultra (64–128GB) | 70B dense, 100B+ MoE | Best local quality available without enterprise hardware |
+| **CPU-only** | Ryzen/Intel desktop + 32–64GB RAM | 3B–7B only | 2–5 minutes per research step; usable for background runs, not interactive |
+| **Advanced (early adopter)** | AMD Strix Halo / Ryzen AI Max+ 395, NVIDIA DGX Spark | 70B+ | ROCm gfx1151 stability caveats; DGX Spark is researcher-tier — not a primary recommendation |
+
+### Default model
+
+If you're unsure, install Ollama and pull a **7B–8B Q4** model (`ollama pull qwen3:8b` or `ollama pull llama3.1:8b`). This is what the majority of GPUs on the market today can run at full speed, and it's what Deep Research is tuned for out of the box.
+
+### Topology
+
+Running Deep Research + Ollama + SearXNG on the **same machine** is the recommended default. Localhost networking is simplest, avoids LAN-latency on hot-path calls, and matches how most homelab users deploy this stack. Splitting the LLM onto a separate GPU box is supported via `OLLAMA_HOST` / base URL overrides, but it's an advanced configuration.
+
+### Heads-up on CPU fallback
+
+Ollama will silently fall back to CPU inference if your model doesn't fit in VRAM ([ollama#14258](https://github.com/ollama/ollama/issues/14258)). If Deep Research feels unusually slow, check `ollama ps` — a model that was supposed to be on the GPU may be running on the CPU.
+
 ## ⌨️ Development
 
 Follow these steps to get Deep Research up and running on your local browser.

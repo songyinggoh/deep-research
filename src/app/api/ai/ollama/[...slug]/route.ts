@@ -1,24 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { OLLAMA_BASE_URL } from "@/constants/urls";
 
-export const runtime = "edge";
-export const preferredRegion = [
-  "cle1",
-  "iad1",
-  "pdx1",
-  "sfo1",
-  "sin1",
-  "syd1",
-  "hnd1",
-  "kix1",
-];
-
 const API_PROXY_BASE_URL = process.env.OLLAMA_API_BASE_URL || OLLAMA_BASE_URL;
 
 async function handler(req: NextRequest) {
   let body;
   if (req.method.toUpperCase() !== "GET") {
-    body = await req.json();
+    try {
+      body = await req.json();
+    } catch {
+      // no body or non-JSON body
+    }
   }
   const searchParams = req.nextUrl.searchParams;
   const path = searchParams.getAll("slug");

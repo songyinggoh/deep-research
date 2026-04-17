@@ -1,24 +1,16 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SEARXNG_BASE_URL } from "@/constants/urls";
 
-export const runtime = "edge";
-export const preferredRegion = [
-  "cle1",
-  "iad1",
-  "pdx1",
-  "sfo1",
-  "sin1",
-  "syd1",
-  "hnd1",
-  "kix1",
-];
-
 const API_PROXY_BASE_URL = process.env.SEARXNG_API_BASE_URL || SEARXNG_BASE_URL;
 
 export async function POST(req: NextRequest) {
   let body;
   if (req.method.toUpperCase() !== "GET") {
-    body = await req.json();
+    try {
+      body = await req.json();
+    } catch {
+      // no body or non-JSON body — query params carry the search params
+    }
   }
   const searchParams = req.nextUrl.searchParams;
   const path = searchParams.getAll("slug");

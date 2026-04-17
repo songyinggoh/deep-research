@@ -45,6 +45,10 @@ const SEARXNG_API_BASE_URL =
 export default async function Config(phase: string) {
   const nextConfig: NextConfig = {
     /* config options here */
+    eslint: {
+      ignoreDuringBuilds: false,
+      dirs: ["src/app", "src/components", "src/hooks", "src/store", "src/utils", "src/constants", "src/locales"],
+    },
     experimental: {
       reactCompiler: true,
     },
