@@ -140,7 +140,7 @@ function useWebSearch() {
           options.baseURL = searxngApiProxy;
         } else {
           options.baseURL = location.origin + "/api/search/searxng";
-          options.apiKey = generateSignature(accessPassword, Date.now());
+          options.apiKey = await generateSignature(accessPassword, Date.now());
         }
         options.scope = searxngScope;
         break;
@@ -149,7 +149,7 @@ function useWebSearch() {
     }
 
     if (mode === "proxy") {
-      options.apiKey = generateSignature(accessPassword, Date.now());
+      options.apiKey = await generateSignature(accessPassword, Date.now());
     }
 
     const result = await createSearchProvider(options);

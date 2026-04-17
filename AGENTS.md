@@ -19,9 +19,13 @@ The project uses **pnpm** as the primary package manager.
 
 ### Testing
 
-- **Status**: Currently, there are no automated tests in the codebase.
-- **Guideline**: If adding tests, use **Vitest** or **Jest** following standard Next.js patterns. Place test files next to the code they test (e.g., `ComponentName.test.tsx`) or in a `__tests__` directory.
-- **Single Test**: To run a single test (if added), use `pnpm vitest run path/to/file.test.ts`.
+- **Runner**: **Jest** with `ts-jest`. Config in `jest.config.ts`; test-specific TypeScript config in `tsconfig.test.json`.
+- **Test files**: `src/__tests__/` — covers abort signals, error handling, file utils, markdown, model utils, Ollama provider + integration + stream mocks, prompts, global store, history store, text utils, XML stripping, URL utils.
+- **Run all tests**: `pnpm test`
+- **Watch mode**: `pnpm test:watch`
+- **Coverage**: `pnpm test:coverage`
+- **Ollama live tests** (requires a running Ollama server): `pnpm test:ollama-live`
+- **Adding tests**: Place new test files in `src/__tests__/` using the `*.test.ts` naming convention. Use `tsconfig.test.json` (not the default `tsconfig.json`) — it includes `@types/jest` and the `src/__tests__` path.
 
 ---
 

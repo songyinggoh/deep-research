@@ -5,7 +5,7 @@ import { verifySignature } from "@/utils/signature";
 import { generateAuthToken } from "@/utils/vertex-auth";
 
 const accessPassword = process.env.ACCESS_PASSWORD || "";
-// AI provider API key
+// AI provider API keys
 const GOOGLE_GENERATIVE_AI_API_KEY =
   process.env.GOOGLE_GENERATIVE_AI_API_KEY || "";
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
@@ -19,12 +19,12 @@ const GOOGLE_CLIENT_EMAIL = process.env.GOOGLE_CLIENT_EMAIL || "";
 const GOOGLE_PRIVATE_KEY = process.env.GOOGLE_PRIVATE_KEY || "";
 const GOOGLE_PRIVATE_KEY_ID = process.env.GOOGLE_PRIVATE_KEY_ID || "";
 const OPENAI_COMPATIBLE_API_KEY = process.env.OPENAI_COMPATIBLE_API_KEY || "";
-// Search provider API key
+// Search provider API keys
 const TAVILY_API_KEY = process.env.TAVILY_API_KEY || "";
 const FIRECRAWL_API_KEY = process.env.FIRECRAWL_API_KEY || "";
 const EXA_API_KEY = process.env.EXA_API_KEY || "";
 const BOCHA_API_KEY = process.env.BOCHA_API_KEY || "";
-// Disabled Provider
+// Configuration
 const DISABLED_AI_PROVIDER = process.env.NEXT_PUBLIC_DISABLED_AI_PROVIDER || "";
 const DISABLED_SEARCH_PROVIDER =
   process.env.NEXT_PUBLIC_DISABLED_SEARCH_PROVIDER || "";
@@ -48,6 +48,224 @@ const ERRORS = {
   },
 };
 
+interface ProviderConfig {
+  /** URL path prefix to match */
+  path: string;
+  /** Require POST method (search providers) */
+  requirePost?: true;
+  /** Key used in the disabled-provider env var */
+  disabledKey: string;
+  /** Which disabled list to check */
+  disabledList: "ai" | "search";
+  /** Model-disabled check variant, or null for search providers */
+  modelCheck: "gemini" | "ai" | null;
+  /** Incoming header that carries the HMAC signature */
+  sigHeader: string;
+  /** Strip "Bearer " (7 chars) from the signature before verifying */
+  stripBearer?: true;
+  /** Server-side API key to inject (module-level constant). Absent = pass-through. */
+  serverKey?: string;
+  /** Google Vertex: generate a token instead of polling serverKey */
+  generateVertex?: true;
+  /** Header name for the injected server key. Absent = pure pass-through. */
+  outHeader?: string;
+  /** Wrap the injected key as "Bearer <key>" */
+  bearerOut?: true;
+  /** Delete Authorization before passing through (SearXNG) */
+  deleteAuth?: true;
+  /** Headers to forward from the incoming request, with optional fallback defaults */
+  passHeaders?: Array<{ name: string; default?: string }>;
+}
+
+// Order matters: openaicompatible must precede openai to avoid prefix collision.
+const PROVIDERS: ProviderConfig[] = [
+  // ── AI providers ────────────────────────────────────────────────────────────
+  {
+    path: "/api/ai/google",
+    disabledKey: "google",
+    disabledList: "ai",
+    modelCheck: "gemini",
+    sigHeader: "x-goog-api-key",
+    serverKey: GOOGLE_GENERATIVE_AI_API_KEY,
+    outHeader: "x-goog-api-key",
+    passHeaders: [{ name: "x-goog-api-client", default: "genai-js/0.24.0" }],
+  },
+  {
+    path: "/api/ai/openrouter",
+    disabledKey: "openrouter",
+    disabledList: "ai",
+    modelCheck: "ai",
+    sigHeader: "authorization",
+    stripBearer: true,
+    serverKey: OPENROUTER_API_KEY,
+    outHeader: "Authorization",
+    bearerOut: true,
+  },
+  {
+    path: "/api/ai/openaicompatible",
+    disabledKey: "openaicompatible",
+    disabledList: "ai",
+    modelCheck: "ai",
+    sigHeader: "authorization",
+    stripBearer: true,
+    serverKey: OPENAI_COMPATIBLE_API_KEY,
+    outHeader: "Authorization",
+    bearerOut: true,
+  },
+  {
+    path: "/api/ai/openai",
+    disabledKey: "openai",
+    disabledList: "ai",
+    modelCheck: "ai",
+    sigHeader: "authorization",
+    stripBearer: true,
+    serverKey: OPENAI_API_KEY,
+    outHeader: "Authorization",
+    bearerOut: true,
+  },
+  {
+    path: "/api/ai/anthropic",
+    disabledKey: "anthropic",
+    disabledList: "ai",
+    modelCheck: "ai",
+    sigHeader: "x-api-key",
+    serverKey: ANTHROPIC_API_KEY,
+    outHeader: "x-api-key",
+    passHeaders: [{ name: "anthropic-version", default: "2023-06-01" }],
+  },
+  {
+    path: "/api/ai/deepseek",
+    disabledKey: "deepseek",
+    disabledList: "ai",
+    modelCheck: "ai",
+    sigHeader: "authorization",
+    stripBearer: true,
+    serverKey: DEEPSEEK_API_KEY,
+    outHeader: "Authorization",
+    bearerOut: true,
+  },
+  {
+    path: "/api/ai/xai",
+    disabledKey: "xai",
+    disabledList: "ai",
+    modelCheck: "ai",
+    sigHeader: "authorization",
+    stripBearer: true,
+    serverKey: XAI_API_KEY,
+    outHeader: "Authorization",
+    bearerOut: true,
+  },
+  {
+    path: "/api/ai/mistral",
+    disabledKey: "mistral",
+    disabledList: "ai",
+    modelCheck: "ai",
+    sigHeader: "authorization",
+    stripBearer: true,
+    serverKey: MISTRAL_API_KEY,
+    outHeader: "Authorization",
+    bearerOut: true,
+  },
+  {
+    path: "/api/ai/azure",
+    disabledKey: "azure",
+    disabledList: "ai",
+    modelCheck: "ai",
+    sigHeader: "api-key",
+    serverKey: AZURE_API_KEY,
+    outHeader: "api-key",
+  },
+  {
+    path: "/api/ai/google-vertex",
+    disabledKey: "google-vertex",
+    disabledList: "ai",
+    modelCheck: "ai",
+    sigHeader: "authorization",
+    stripBearer: true,
+    generateVertex: true,
+    outHeader: "Authorization",
+    bearerOut: true,
+  },
+  {
+    // Pollinations is a free/open provider — no server key injection needed
+    path: "/api/ai/pollinations",
+    disabledKey: "pollinations",
+    disabledList: "ai",
+    modelCheck: "ai",
+    sigHeader: "authorization",
+    stripBearer: true,
+  },
+  {
+    // Ollama is a local server — no server key injection needed
+    path: "/api/ai/ollama",
+    disabledKey: "ollama",
+    disabledList: "ai",
+    modelCheck: "ai",
+    sigHeader: "authorization",
+    stripBearer: true,
+  },
+  // ── Search providers ─────────────────────────────────────────────────────────
+  {
+    path: "/api/search/tavily",
+    requirePost: true,
+    disabledKey: "tavily",
+    disabledList: "search",
+    modelCheck: null,
+    sigHeader: "authorization",
+    stripBearer: true,
+    serverKey: TAVILY_API_KEY,
+    outHeader: "Authorization",
+    bearerOut: true,
+  },
+  {
+    path: "/api/search/firecrawl",
+    requirePost: true,
+    disabledKey: "firecrawl",
+    disabledList: "search",
+    modelCheck: null,
+    sigHeader: "authorization",
+    stripBearer: true,
+    serverKey: FIRECRAWL_API_KEY,
+    outHeader: "Authorization",
+    bearerOut: true,
+  },
+  {
+    path: "/api/search/exa",
+    requirePost: true,
+    disabledKey: "exa",
+    disabledList: "search",
+    modelCheck: null,
+    sigHeader: "authorization",
+    stripBearer: true,
+    serverKey: EXA_API_KEY,
+    outHeader: "Authorization",
+    bearerOut: true,
+  },
+  {
+    path: "/api/search/bocha",
+    requirePost: true,
+    disabledKey: "bocha",
+    disabledList: "search",
+    modelCheck: null,
+    sigHeader: "authorization",
+    stripBearer: true,
+    serverKey: BOCHA_API_KEY,
+    outHeader: "Authorization",
+    bearerOut: true,
+  },
+  {
+    // SearXNG is self-hosted — no server key; strip Authorization before proxying
+    path: "/api/search/searxng",
+    requirePost: true,
+    disabledKey: "searxng",
+    disabledList: "search",
+    modelCheck: null,
+    sigHeader: "authorization",
+    stripBearer: true,
+    deleteAuth: true,
+  },
+];
+
 export async function middleware(request: NextRequest) {
   const disabledAIProviders =
     DISABLED_AI_PROVIDER.length > 0 ? DISABLED_AI_PROVIDER.split(",") : [];
@@ -61,699 +279,137 @@ export async function middleware(request: NextRequest) {
     const { availableModelList, disabledModelList } = getCustomModelList(
       MODEL_LIST.length > 0 ? MODEL_LIST.split(",") : []
     );
-    const isAvailableModel = availableModelList.some((availableModel) =>
-      request.nextUrl.pathname.includes(`models/${availableModel}:`)
+    const isAvailableModel = availableModelList.some((m) =>
+      request.nextUrl.pathname.includes(`models/${m}:`)
     );
     if (isAvailableModel) return false;
     if (disabledModelList.includes("all")) return true;
-    return disabledModelList.some((disabledModel) =>
-      request.nextUrl.pathname.includes(`models/${disabledModel}:`)
+    return disabledModelList.some((m) =>
+      request.nextUrl.pathname.includes(`models/${m}:`)
     );
   };
+
   const hasDisabledAIModel = async () => {
     if (request.method.toUpperCase() === "GET") return false;
     const { model = "" } = await request.json();
     const { availableModelList, disabledModelList } = getCustomModelList(
       MODEL_LIST.length > 0 ? MODEL_LIST.split(",") : []
     );
-    const isAvailableModel = availableModelList.some(
-      (availableModel) => availableModel === model
-    );
+    const isAvailableModel = availableModelList.some((m) => m === model);
     if (isAvailableModel) return false;
     if (disabledModelList.includes("all")) return true;
-    return disabledModelList.some((disabledModel) => disabledModel === model);
+    return disabledModelList.some((m) => m === model);
   };
 
-  if (request.nextUrl.pathname.startsWith("/api/ai/google")) {
-    const authorization = request.headers.get("x-goog-api-key") || "";
-    const isDisabledGeminiModel = hasDisabledGeminiModel();
-    if (
-      !verifySignature(authorization, accessPassword, Date.now()) ||
-      disabledAIProviders.includes("google") ||
-      isDisabledGeminiModel
-    ) {
+  // ── Provider proxy routes ──────────────────────────────────────────────────
+  for (const cfg of PROVIDERS) {
+    if (!request.nextUrl.pathname.startsWith(cfg.path)) continue;
+
+    if (cfg.requirePost && request.method.toUpperCase() !== "POST") {
       return NextResponse.json(
         { error: ERRORS.NO_PERMISSIONS },
         { status: 403 }
       );
-    } else {
-      const apiKey = multiApiKeyPolling(GOOGLE_GENERATIVE_AI_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set(
-          "x-goog-api-client",
-          request.headers.get("x-goog-api-client") || "genai-js/0.24.0"
-        );
-        requestHeaders.set("x-goog-api-key", apiKey);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
     }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/ai/openrouter")) {
-    const authorization = request.headers.get("authorization") || "";
-    const isDisabledModel = await hasDisabledAIModel();
+
+    const rawSig = request.headers.get(cfg.sigHeader) || "";
+    const sig = cfg.stripBearer ? rawSig.substring(7) : rawSig;
+
+    const isDisabled =
+      cfg.disabledList === "ai"
+        ? disabledAIProviders.includes(cfg.disabledKey)
+        : disabledSearchProviders.includes(cfg.disabledKey);
+
+    const isDisabledModel =
+      cfg.modelCheck === "gemini"
+        ? hasDisabledGeminiModel()
+        : cfg.modelCheck === "ai"
+          ? await hasDisabledAIModel()
+          : false;
+
     if (
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledAIProviders.includes("openrouter") ||
+      !(await verifySignature(sig, accessPassword, Date.now())) ||
+      isDisabled ||
       isDisabledModel
     ) {
       return NextResponse.json(
         { error: ERRORS.NO_PERMISSIONS },
         { status: 403 }
       );
-    } else {
-      const apiKey = multiApiKeyPolling(OPENROUTER_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("Authorization", `Bearer ${apiKey}`);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
     }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/ai/openaicompatible")) {
-    const authorization = request.headers.get("authorization") || "";
-    const isDisabledModel = await hasDisabledAIModel();
-    if (
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledAIProviders.includes("openaicompatible") ||
-      isDisabledModel
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = multiApiKeyPolling(OPENAI_COMPATIBLE_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("Authorization", `Bearer ${apiKey}`);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
+
+    const requestHeaders = new Headers();
+    requestHeaders.set(
+      "Content-Type",
+      request.headers.get("Content-Type") || "application/json"
+    );
+
+    // Forward passthrough headers (with optional fallback defaults)
+    for (const { name, default: def } of cfg.passHeaders ?? []) {
+      const val = request.headers.get(name) || def;
+      if (val) requestHeaders.set(name, val);
     }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/ai/openai")) {
-    const authorization = request.headers.get("authorization") || "";
-    const isDisabledModel = await hasDisabledAIModel();
-    if (
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledAIProviders.includes("openai") ||
-      isDisabledModel
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = multiApiKeyPolling(OPENAI_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("Authorization", `Bearer ${apiKey}`);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
+
+    if (cfg.deleteAuth) {
+      requestHeaders.delete("Authorization");
+      return NextResponse.next({ request: { headers: requestHeaders } });
     }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/ai/anthropic")) {
-    const authorization = request.headers.get("x-api-key") || "";
-    const isDisabledModel = await hasDisabledAIModel();
-    if (
-      !verifySignature(authorization, accessPassword, Date.now()) ||
-      disabledAIProviders.includes("anthropic") ||
-      isDisabledModel
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = multiApiKeyPolling(ANTHROPIC_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("x-api-key", apiKey);
-        requestHeaders.set(
-          "anthropic-version",
-          request.headers.get("anthropic-version") || "2023-06-01"
-        );
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
+
+    if (!cfg.outHeader) {
+      // Pure pass-through: no server key to inject (Pollinations, Ollama)
+      return NextResponse.next({ request: { headers: requestHeaders } });
     }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/ai/deepseek")) {
-    const authorization = request.headers.get("authorization") || "";
-    const isDisabledModel = await hasDisabledAIModel();
-    if (
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledAIProviders.includes("deepseek") ||
-      isDisabledModel
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = multiApiKeyPolling(DEEPSEEK_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("Authorization", `Bearer ${apiKey}`);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
-    }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/ai/xai")) {
-    const authorization = request.headers.get("authorization") || "";
-    const isDisabledModel = await hasDisabledAIModel();
-    if (
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledAIProviders.includes("xai") ||
-      isDisabledModel
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = multiApiKeyPolling(XAI_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("Authorization", `Bearer ${apiKey}`);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
-    }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/ai/mistral")) {
-    const authorization = request.headers.get("authorization") || "";
-    const isDisabledModel = await hasDisabledAIModel();
-    if (
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledAIProviders.includes("mistral") ||
-      isDisabledModel
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = multiApiKeyPolling(MISTRAL_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("Authorization", `Bearer ${apiKey}`);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
-    }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/ai/azure")) {
-    const authorization = request.headers.get("api-key") || "";
-    const isDisabledModel = await hasDisabledAIModel();
-    if (
-      !verifySignature(authorization, accessPassword, Date.now()) ||
-      disabledAIProviders.includes("azure") ||
-      isDisabledModel
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = multiApiKeyPolling(AZURE_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("api-key", apiKey);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
-    }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/ai/google-vertex")) {
-    const authorization = request.headers.get("authorization") || "";
-    const isDisabledModel = await hasDisabledAIModel();
-    if (
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledAIProviders.includes("google-vertex") ||
-      isDisabledModel
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = await generateAuthToken({
+
+    // Resolve server-side key
+    let apiKey: string | null = null;
+    if (cfg.generateVertex) {
+      apiKey = await generateAuthToken({
         clientEmail: GOOGLE_CLIENT_EMAIL,
         privateKey: GOOGLE_PRIVATE_KEY,
         privateKeyId: GOOGLE_PRIVATE_KEY_ID,
       });
+    } else if (cfg.serverKey !== undefined) {
+      apiKey = multiApiKeyPolling(cfg.serverKey) || null;
+    }
 
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("Authorization", `Bearer ${apiKey}`);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
+    if (!apiKey) {
+      return NextResponse.json({ error: ERRORS.NO_API_KEY }, { status: 500 });
     }
+
+    requestHeaders.set(
+      cfg.outHeader,
+      cfg.bearerOut ? `Bearer ${apiKey}` : apiKey
+    );
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
-  // The pollinations model only verifies access to the backend API
-  if (request.nextUrl.pathname.startsWith("/api/ai/pollinations")) {
-    const authorization = request.headers.get("authorization") || "";
-    const isDisabledModel = await hasDisabledAIModel();
-    if (
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledAIProviders.includes("pollinations") ||
-      isDisabledModel
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const requestHeaders = new Headers();
-      requestHeaders.set(
-        "Content-Type",
-        request.headers.get("Content-Type") || "application/json"
-      );
-      return NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      });
-    }
-  }
-  // The ollama model only verifies access to the backend API
-  if (request.nextUrl.pathname.startsWith("/api/ai/ollama")) {
-    const authorization = request.headers.get("authorization") || "";
-    const isDisabledModel = await hasDisabledAIModel();
-    if (
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledAIProviders.includes("ollama") ||
-      isDisabledModel
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const requestHeaders = new Headers();
-      requestHeaders.set(
-        "Content-Type",
-        request.headers.get("Content-Type") || "application/json"
-      );
-      return NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      });
-    }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/search/tavily")) {
-    const authorization = request.headers.get("authorization") || "";
-    if (
-      request.method.toUpperCase() !== "POST" ||
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledSearchProviders.includes("tavily")
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = multiApiKeyPolling(TAVILY_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("Authorization", `Bearer ${apiKey}`);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
-    }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/search/firecrawl")) {
-    const authorization = request.headers.get("authorization") || "";
-    if (
-      request.method.toUpperCase() !== "POST" ||
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledSearchProviders.includes("firecrawl")
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = multiApiKeyPolling(FIRECRAWL_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("Authorization", `Bearer ${apiKey}`);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
-    }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/search/exa")) {
-    const authorization = request.headers.get("authorization") || "";
-    if (
-      request.method.toUpperCase() !== "POST" ||
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledSearchProviders.includes("exa")
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = multiApiKeyPolling(EXA_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("Authorization", `Bearer ${apiKey}`);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
-    }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/search/bocha")) {
-    const authorization = request.headers.get("authorization") || "";
-    if (
-      request.method.toUpperCase() !== "POST" ||
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledSearchProviders.includes("bocha")
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const apiKey = multiApiKeyPolling(BOCHA_API_KEY);
-      if (apiKey) {
-        const requestHeaders = new Headers();
-        requestHeaders.set(
-          "Content-Type",
-          request.headers.get("Content-Type") || "application/json"
-        );
-        requestHeaders.set("Authorization", `Bearer ${apiKey}`);
-        return NextResponse.next({
-          request: {
-            headers: requestHeaders,
-          },
-        });
-      } else {
-        return NextResponse.json(
-          {
-            error: ERRORS.NO_API_KEY,
-          },
-          { status: 500 }
-        );
-      }
-    }
-  }
-  if (request.nextUrl.pathname.startsWith("/api/search/searxng")) {
-    const authorization = request.headers.get("authorization") || "";
-    if (
-      request.method.toUpperCase() !== "POST" ||
-      !verifySignature(
-        authorization.substring(7),
-        accessPassword,
-        Date.now()
-      ) ||
-      disabledSearchProviders.includes("searxng")
-    ) {
-      return NextResponse.json(
-        { error: ERRORS.NO_PERMISSIONS },
-        { status: 403 }
-      );
-    } else {
-      const requestHeaders = new Headers();
-      requestHeaders.set(
-        "Content-Type",
-        request.headers.get("Content-Type") || "application/json"
-      );
-      requestHeaders.delete("Authorization");
-      return NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      });
-    }
-  }
+
+  // ── /api/crawler ───────────────────────────────────────────────────────────
+  // Auth verified here; SSRF protection lives in the route handler itself.
   if (request.nextUrl.pathname.startsWith("/api/crawler")) {
     const authorization = request.headers.get("authorization") || "";
     if (
       request.method.toUpperCase() !== "POST" ||
-      !verifySignature(authorization.substring(7), accessPassword, Date.now())
+      !(await verifySignature(
+        authorization.substring(7),
+        accessPassword,
+        Date.now()
+      ))
     ) {
       return NextResponse.json(
         { error: ERRORS.NO_PERMISSIONS },
         { status: 403 }
       );
-    } else {
-      const requestHeaders = new Headers();
-      requestHeaders.set(
-        "Content-Type",
-        request.headers.get("Content-Type") || "application/json"
-      );
-      requestHeaders.delete("Authorization");
-      return NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      });
     }
+    const requestHeaders = new Headers();
+    requestHeaders.set(
+      "Content-Type",
+      request.headers.get("Content-Type") || "application/json"
+    );
+    requestHeaders.delete("Authorization");
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
+
+  // ── /api/sse ───────────────────────────────────────────────────────────────
   if (request.nextUrl.pathname.startsWith("/api/sse")) {
     let authorization = request.headers.get("authorization") || "";
     if (authorization !== "") {
@@ -766,20 +422,17 @@ export async function middleware(request: NextRequest) {
         { error: ERRORS.NO_PERMISSIONS },
         { status: 403 }
       );
-    } else {
-      const requestHeaders = new Headers();
-      requestHeaders.set(
-        "Content-Type",
-        request.headers.get("Content-Type") || "application/json"
-      );
-      requestHeaders.delete("Authorization");
-      return NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      });
     }
+    const requestHeaders = new Headers();
+    requestHeaders.set(
+      "Content-Type",
+      request.headers.get("Content-Type") || "application/json"
+    );
+    requestHeaders.delete("Authorization");
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
+
+  // ── /api/mcp ───────────────────────────────────────────────────────────────
   if (request.nextUrl.pathname.startsWith("/api/mcp")) {
     const authorization = request.headers.get("authorization") || "";
     if (authorization.substring(7) !== accessPassword) {
@@ -793,19 +446,15 @@ export async function middleware(request: NextRequest) {
         },
         { headers: responseHeaders, status: 401 }
       );
-    } else {
-      const requestHeaders = new Headers();
-      requestHeaders.set(
-        "Content-Type",
-        request.headers.get("Content-Type") || "application/json"
-      );
-      requestHeaders.delete("Authorization");
-      return NextResponse.next({
-        request: {
-          headers: requestHeaders,
-        },
-      });
     }
+    const requestHeaders = new Headers();
+    requestHeaders.set(
+      "Content-Type",
+      request.headers.get("Content-Type") || "application/json"
+    );
+    requestHeaders.delete("Authorization");
+    return NextResponse.next({ request: { headers: requestHeaders } });
   }
+
   return NextResponse.next();
 }
